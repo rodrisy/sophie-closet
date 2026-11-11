@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>sophie's closet</title>
+<style>
+  :root{
+    --bg:#0d0b09; --panel:#17130e; --panel-2:#211b14; --line:#352b20;
+    --text:#f4ecdf; --muted:#a2917a; --accent:#e0a53f; --accent-dim:#8f6826;
+    --radius:14px; --font:'Avenir Next','Segoe UI',system-ui,-apple-system,sans-serif;
+    /* cheetah rosettes, tiled and seamless at 160px */
+    --spots:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='%23000'%3E%3Cellipse cx='22' cy='26' rx='8' ry='6.5' transform='rotate(-18 22 26)'/%3E%3Cellipse cx='62' cy='12' rx='6.5' ry='5' transform='rotate(24 62 12)'/%3E%3Cellipse cx='104' cy='34' rx='9' ry='6.8' transform='rotate(-8 104 34)'/%3E%3Cellipse cx='142' cy='18' rx='7' ry='5.6' transform='rotate(32 142 18)'/%3E%3Cellipse cx='-18' cy='18' rx='7' ry='5.6' transform='rotate(32 -18 18)'/%3E%3Cellipse cx='40' cy='64' rx='7.5' ry='6' transform='rotate(12 40 64)'/%3E%3Cellipse cx='84' cy='58' rx='6' ry='8' transform='rotate(-26 84 58)'/%3E%3Cellipse cx='126' cy='78' rx='8.5' ry='6' transform='rotate(16 126 78)'/%3E%3Cellipse cx='16' cy='98' rx='6.4' ry='8.2' transform='rotate(-34 16 98)'/%3E%3Cellipse cx='58' cy='106' rx='9' ry='6.4' transform='rotate(8 58 106)'/%3E%3Cellipse cx='98' cy='120' rx='6.8' ry='5.4' transform='rotate(-14 98 120)'/%3E%3Cellipse cx='150' cy='112' rx='7.6' ry='6' transform='rotate(22 150 112)'/%3E%3Cellipse cx='-10' cy='112' rx='7.6' ry='6' transform='rotate(22 -10 112)'/%3E%3Cellipse cx='34' cy='140' rx='6.2' ry='8' transform='rotate(28 34 140)'/%3E%3Cellipse cx='78' cy='150' rx='8' ry='5.8' transform='rotate(-20 78 150)'/%3E%3Cellipse cx='78' cy='-10' rx='8' ry='5.8' transform='rotate(-20 78 -10)'/%3E%3Cellipse cx='118' cy='148' rx='6' ry='7' transform='rotate(10 118 148)'/%3E%3Cellipse cx='118' cy='-12' rx='6' ry='7' transform='rotate(10 118 -12)'/%3E%3C/g%3E%3C/svg%3E");
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{margin:0;color:var(--text);font-family:var(--font);
+       overflow:hidden;-webkit-font-smoothing:antialiased;
+       background:
+         radial-gradient(130% 100% at 50% 0%, #211a11 0%, var(--bg) 62%);}
+  /* the spot layer sits under everything, faint enough to read as texture */
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:var(--spots);background-size:220px 220px;opacity:.07}
+
+  /* ---------- GATE ---------- */
+  #gate{position:fixed;inset:0;z-index:999;display:flex;
+        background:radial-gradient(90% 70% at 50% 42%, #2a2014 0%, #0d0b09 70%);
+        align-items:center;justify-content:center;flex-direction:column;gap:18px;
+        transition:opacity .5s ease}
+  #gate.hide{opacity:0;pointer-events:none}
+  #gate input{background:transparent;border:none;border-bottom:1px solid var(--line);
+    color:var(--text);font-family:var(--font);font-size:20px;text-align:center;
+    padding:12px 8px;width:230px;outline:none;letter-spacing:.14em;transition:border-color .25s}
+  #gate input:focus{border-color:var(--accent)}
+  #gate.bad input{border-color:#b4433a;animation:shake .4s}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}
+    40%{transform:translateX(9px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+  #gate .hint{color:var(--accent);font-size:12px;letter-spacing:.24em;text-transform:uppercase}
+  #gate::before{content:'';position:absolute;inset:0;background-image:var(--spots);
+    background-size:200px 200px;opacity:.09;pointer-events:none}
+  #gate>*{position:relative;z-index:1}
+
+  /* ---------- LAYOUT ---------- */
+  #app{display:none;height:100%;grid-template-columns:1fr 330px}
+  #app.on{display:grid}
+  #stageWrap{position:relative;display:flex;align-items:center;justify-content:center;
+             padding:22px;overflow:hidden}
+
+  .stage{position:relative;width:400px;height:600px;border-radius:var(--radius);
+         overflow:hidden;transform-origin:center center}
+  #stage{box-shadow:0 30px 70px rgba(0,0,0,.55)}
+  .bd{position:absolute;inset:0;transition:background .45s ease}
+  .fig{position:absolute;inset:0;width:100%;height:100%}
+  .its{position:absolute;inset:0}
+  .item{position:absolute;transform-origin:center center;cursor:grab;
+        user-select:none;-webkit-user-drag:none;touch-action:none}
+  .item.lit{outline:1.5px dashed var(--accent);outline-offset:4px}
+  .item.dragging{cursor:grabbing}
+
+  /* ---------- PANEL ---------- */
+  #panel{position:relative;background:var(--panel);border-left:1px solid var(--line);
+         display:flex;flex-direction:column;overflow-y:auto;z-index:1}
+  #panel::before{content:'';position:absolute;inset:0;background-image:var(--spots);
+    background-size:190px 190px;opacity:.06;pointer-events:none}
+  #panel>*{position:relative;z-index:1}
+  #stageWrap{z-index:1}
+  .sec{padding:16px 18px;border-bottom:1px solid var(--line)}
+  .sec h3{margin:0 0 11px;font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+          color:var(--muted);font-weight:600}
+  .row{display:flex;gap:7px;flex-wrap:wrap}
+
+  .btn{background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+       padding:8px 13px;border-radius:9px;font-family:var(--font);font-size:12.5px;
+       cursor:pointer;transition:.15s}
+  .btn:hover{border-color:var(--accent-dim)}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn.on{background:var(--accent);border-color:var(--accent);color:#1a1512;font-weight:600}
+  .btn.wide{width:100%;text-align:center}
+  .btn.sm{padding:6px 10px;font-size:11.5px}
+  .btn.big{padding:11px 20px;font-size:13.5px}
+  .btn.go{background:var(--accent);border-color:var(--accent);color:#1a1512;font-weight:600}
+  .btn.danger:hover{border-color:#b4433a;color:#e08880}
+
+  .swatches{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+  .sw{aspect-ratio:1;border-radius:8px;cursor:pointer;border:2px solid transparent;transition:.15s}
+  .sw:hover{transform:scale(1.07)}
+  .sw.on{border-color:var(--accent)}
+
+  #closet{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .thumb{position:relative;aspect-ratio:1;background:var(--panel-2);
+         border:1px solid var(--line);border-radius:10px;cursor:pointer;
+         display:flex;align-items:center;justify-content:center;overflow:hidden;transition:.15s}
+  .thumb:hover{border-color:var(--accent-dim)}
+  .thumb.worn{border-color:var(--accent);background:#241d16}
+  .thumb img{max-width:80%;max-height:80%;object-fit:contain;pointer-events:none}
+  .thumb .tag{position:absolute;bottom:0;left:0;right:0;font-size:8px;letter-spacing:.1em;
+    text-transform:uppercase;text-align:center;padding:2px;color:var(--muted);background:rgba(0,0,0,.55)}
+  .thumb .edit{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;
+    background:rgba(14,13,12,.82);border:1px solid var(--line);color:var(--muted);
+    font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;transition:.15s;padding:0}
+  .thumb .edit:hover{background:var(--accent);color:#1a1512;border-color:var(--accent)}
+
+  #drop{border:1.5px dashed var(--line);border-radius:11px;padding:20px 12px;text-align:center;
+        color:var(--muted);font-size:12.5px;cursor:pointer;transition:.2s;line-height:1.6}
+  #drop:hover,#drop.over{border-color:var(--accent);color:var(--text);background:var(--panel-2)}
+
+  .ctrl{margin-bottom:13px}
+  .ctrl label{display:flex;justify-content:space-between;align-items:center;font-size:11px;
+              color:var(--muted);margin-bottom:6px;letter-spacing:.05em}
+  input[type=range]{width:100%;-webkit-appearance:none;height:3px;background:var(--line);
+                    border-radius:2px;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;
+    border-radius:50%;background:var(--accent);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;
+    background:var(--accent);cursor:pointer;border:none}
+  input[type=range]:disabled{opacity:.35}
+  select{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+         padding:8px;border-radius:8px;font-family:var(--font);font-size:12.5px;outline:none}
+  .empty{color:var(--muted);font-size:12px;font-style:italic;grid-column:1/-1;padding:6px 0}
+  .sub{font-size:10.5px;color:var(--muted);line-height:1.5;margin-top:7px}
+
+  .urlRow{display:flex;gap:7px;margin-top:9px}
+  .urlRow input{flex:1;min-width:0;background:var(--panel-2);border:1px solid var(--line);
+    color:var(--text);padding:8px 10px;border-radius:9px;font-family:var(--font);
+    font-size:12px;outline:none}
+  .urlRow input:focus{border-color:var(--accent-dim)}
+
+  #pick{position:fixed;inset:0;z-index:850;background:rgba(8,7,7,.8);
+    backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
+    display:flex;align-items:center;justify-content:center;padding:24px;
+    opacity:0;pointer-events:none;transition:opacity .25s}
+  #pick.on{opacity:1;pointer-events:auto}
+  .pickBox{background:var(--panel);border:1px solid var(--line);border-radius:18px;
+    padding:20px;max-width:640px;width:100%;max-height:calc(100vh - 48px);overflow-y:auto;
+    box-shadow:0 40px 90px rgba(0,0,0,.6)}
+  #pickGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
+  .cand{aspect-ratio:3/4;background:#fff;border:1px solid var(--line);border-radius:10px;
+    cursor:pointer;overflow:hidden;transition:.15s;display:flex;align-items:center;
+    justify-content:center;padding:0}
+  .cand:hover{border-color:var(--accent);transform:scale(1.03)}
+  .cand img{width:100%;height:100%;object-fit:contain}
+
+  #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(14px);
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    padding:10px 18px;border-radius:10px;font-size:12.5px;z-index:900;
+    opacity:0;pointer-events:none;transition:.25s}
+  #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ---------- REVIEW OVERLAY ---------- */
+  #modal{position:fixed;inset:0;z-index:800;background:rgba(8,7,7,.78);
+    backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
+    display:flex;align-items:center;justify-content:center;padding:20px;
+    opacity:0;pointer-events:none;transition:opacity .25s}
+  #modal.on{opacity:1;pointer-events:auto}
+
+  .sheet{background:var(--panel);border:1px solid var(--line);border-radius:20px;
+    box-shadow:0 40px 90px rgba(0,0,0,.6);display:flex;flex-direction:column;
+    max-height:calc(100vh - 40px);overflow:hidden;transition:.3s cubic-bezier(.3,.9,.3,1)}
+  .sheetMain{display:flex;gap:0;overflow:hidden}
+  .sheetPrev{padding:20px;display:flex;align-items:center;justify-content:center}
+  .stageBox{position:relative;overflow:hidden;border-radius:12px}
+  .stageBox .stage{position:absolute;top:0;left:0;transform-origin:top left}
+
+  .sheetSide{width:320px;flex:none;border-left:1px solid var(--line);padding:20px;
+             overflow-y:auto;display:none}
+  #modal.wide .sheetSide{display:block}
+
+  .sheetFoot{border-top:1px solid var(--line);padding:14px 18px;display:flex;
+             align-items:center;justify-content:center;gap:10px}
+  .sheetFoot .q{flex:1;font-size:13.5px}
+  #modal.wide .ask{display:none}
+  #modal:not(.wide) .fin{display:none}
+
+  .sideH{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);
+         font-weight:600;margin:0 0 13px}
+  .chk{width:15px;height:15px;accent-color:var(--accent);cursor:pointer}
+
+  @media(max-width:900px){
+    body{overflow:auto}
+    #app.on{grid-template-columns:1fr;height:auto;min-height:100%}
+    #panel{border-left:none;border-top:1px solid var(--line)}
+    #stageWrap{padding:14px}
+    .sheetMain{flex-direction:column}
+    .sheetSide{width:auto;border-left:none;border-top:1px solid var(--line)}
+  }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <input id="code" type="password" placeholder="••••••••" autocomplete="off" spellcheck="false">
+  <div class="hint">sophie's closet</div>
+</div>
+
+<div id="app">
+  <div id="stageWrap">
+    <div class="stage" id="stage">
+      <div class="bd"></div>
+      <svg class="fig" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="its"></div>
+    </div>
+  </div>
+
+  <div id="panel">
+    <div class="sec">
+      <h3>Pose</h3>
+      <div class="row" id="poses"></div>
+    </div>
+    <div class="sec">
+      <h3>Backdrop</h3>
+      <div class="swatches" id="backdrops"></div>
+    </div>
+    <div class="sec">
+      <h3>Add item</h3>
+      <div id="drop">drop an image<br>or click to choose</div>
+      <input type="file" id="file" accept="image/*" multiple hidden>
+      <div class="urlRow">
+        <input type="text" id="url" placeholder="or paste a shop link" spellcheck="false">
+        <button class="btn sm" id="grab">Get</button>
+      </div>
+    </div>
+    <div class="sec">
+      <h3>Closet</h3>
+      <div id="closet"></div>
+      <div class="sub">Tap to wear or remove. The pencil opens the fit.</div>
+    </div>
+    <div class="sec">
+      <button class="btn wide" id="clearLook">Take everything off</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal">
+  <div class="sheet">
+    <div class="sheetMain">
+      <div class="sheetPrev">
+        <div class="stageBox" id="mbox">
+          <div class="stage" id="mstage">
+            <div class="bd"></div>
+            <svg class="fig" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid meet"></svg>
+            <div class="its"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sheetSide">
+        <h4 class="sideH">Fit</h4>
+        <div class="ctrl">
+          <label>Size <span id="vScale">100%</span></label>
+          <input type="range" id="rScale" min="25" max="260" value="100">
+        </div>
+        <div class="ctrl">
+          <label>Rotation <span id="vRot">0°</span></label>
+          <input type="range" id="rRot" min="-45" max="45" value="0">
+        </div>
+        <div class="ctrl">
+          <label><span>Wrap to body</span><input type="checkbox" id="wrapOn" class="chk" checked></label>
+          <input type="range" id="rWrap" min="0" max="100" value="65">
+        </div>
+        <div class="ctrl">
+          <label>Layer</label>
+          <select id="cat"></select>
+        </div>
+
+        <h4 class="sideH" style="margin-top:20px">Background</h4>
+        <div class="ctrl">
+          <label>Cut strength <span id="vTol">32</span></label>
+          <input type="range" id="rTol" min="8" max="90" value="32">
+        </div>
+        <div class="row" style="margin-bottom:16px">
+          <button class="btn sm" id="cutAI">AI cut</button>
+          <button class="btn sm" id="cutUndo">Original</button>
+        </div>
+
+        <div class="row">
+          <button class="btn sm" id="reset">Recentre</button>
+          <button class="btn sm danger" id="del">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sheetFoot">
+      <span class="q ask">Does this look right?</span>
+      <button class="btn big ask" id="askNo">Let me adjust</button>
+      <button class="btn big go ask" id="askYes">Looks good</button>
+      <button class="btn big go fin wide" id="finDone">Done</button>
+    </div>
+  </div>
+</div>
+
+<div id="pick">
+  <div class="pickBox">
+    <h4 class="sideH" id="pickTitle">Pick the picture to use</h4>
+    <div id="pickGrid"></div>
+    <button class="btn wide" id="pickCancel" style="margin-top:14px">Cancel</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   SOPHIE'S CLOSET
+   2.5D paper-doll. Local only, nothing wired to a backend yet.
+   ============================================================ */
+
+const PASSCODE = 'waterlady';
+
+/* ---------- POSES ----------
+   Figure is drawn as a skeleton of thick rounded strokes, so a pose
+   is just a set of joint coordinates. Anchors are where each garment
+   category naturally sits in that pose — items store an OFFSET from
+   their anchor, so a nudge survives switching poses.            */
+
+const POSES = {
+  stand: {
+    label:'Stand',
+    head:{x:200,y:74,r:30},
+    torso:'M162,132 L238,132 L228,298 L172,298 Z',
+    armL:'M164,138 L152,202 L148,266',
+    armR:'M236,138 L248,202 L252,266',
+    legL:'M181,296 L177,392 L175,482',
+    legR:'M219,296 L223,392 L225,482',
+    footL:'M175,482 L160,490', footR:'M225,482 L240,490',
+    ground:{y:496,rx:56},
+    anchors:{
+      hat:{x:200,y:42},  face:{x:200,y:76},
+      accessory:{x:200,y:142},
+      top:{x:200,y:200},  outerwear:{x:200,y:208},
+      bottom:{x:200,y:338}, shoes:{x:200,y:486}
+    }
+  },
+  hip: {
+    label:'Hip',
+    head:{x:203,y:74,r:30},
+    torso:'M164,132 L240,132 L230,298 L174,298 Z',
+    armL:'M166,138 L140,196 L178,252',
+    armR:'M238,138 L250,202 L254,268',
+    legL:'M182,296 L174,392 L169,482',
+    legR:'M221,296 L231,392 L239,480',
+    footL:'M169,482 L154,490', footR:'M239,480 L254,488',
+    ground:{y:495,rx:62},
+    anchors:{
+      hat:{x:203,y:42},  face:{x:203,y:76},
+      accessory:{x:202,y:142},
+      top:{x:202,y:200},  outerwear:{x:202,y:208},
+      bottom:{x:202,y:338}, shoes:{x:204,y:485}
+    }
+  },
+  walk: {
+    label:'Walk',
+    head:{x:198,y:74,r:30},
+    torso:'M161,132 L237,132 L227,296 L171,296 Z',
+    armL:'M163,138 L146,198 L153,258',
+    armR:'M235,138 L256,196 L249,258',
+    legL:'M180,294 L161,386 L143,470',
+    legR:'M218,294 L239,386 L257,470',
+    footL:'M143,470 L128,478', footR:'M257,470 L272,478',
+    ground:{y:484,rx:84},
+    anchors:{
+      hat:{x:198,y:42},  face:{x:198,y:76},
+      accessory:{x:199,y:142},
+      top:{x:199,y:198},  outerwear:{x:199,y:206},
+      bottom:{x:199,y:334}, shoes:{x:200,y:474}
+    }
+  }
+};
+
+/* ---------- CATEGORIES ----------
+   z    = paint order
+   fit  = target on-body width after auto-sizing
+   hug  = how much wider than the body this category sits
+   wrap = whether the body wrap applies at all           */
+const CATS = {
+  bottom:    {label:'Bottoms',   z:10, w:116, fit:78,  hug:1.25, wrap:true},
+  top:       {label:'Top',       z:20, w:112, fit:88,  hug:1.14, wrap:true},
+  outerwear: {label:'Outerwear', z:30, w:132, fit:106, hug:1.38, wrap:true},
+  shoes:     {label:'Shoes',     z:40, w:92,  fit:86,  hug:1.0,  wrap:false},
+  accessory: {label:'Accessory', z:50, w:72,  fit:64,  hug:1.0,  wrap:false},
+  face:      {label:'Face',      z:60, w:62,  fit:58,  hug:1.0,  wrap:false},
+  hat:       {label:'Hat',       z:70, w:88,  fit:72,  hug:1.0,  wrap:false}
+};
+
+/* Body silhouette per pose: [y, halfWidth, centreX].
+   The wrap squeezes each garment row toward this profile.   */
+const PROFILE = {
+  stand:[[132,38,200],[220,34,200],[298,28,200],[392,35,200],[482,37,200]],
+  hip:  [[132,38,202],[220,34,202],[298,28,202],[392,41,203],[482,48,204]],
+  walk: [[132,38,199],[220,34,199],[296,28,199],[386,52,200],[470,70,200]]
+};
+
+function bodyAt(pose,y){
+  const pr = PROFILE[pose];
+  if(y < pr[0][0] || y > pr[pr.length-1][0]) return null;
+  for(let i=0;i<pr.length-1;i++){
+    const [y0,h0,c0]=pr[i], [y1,h1,c1]=pr[i+1];
+    if(y>=y0 && y<=y1){
+      const t=(y-y0)/(y1-y0);
+      return {half:h0+(h1-h0)*t, cx:c0+(c1-c0)*t};
+    }
+  }
+  return null;
+}
+
+const BACKDROPS = [
+  {name:'studio', css:'linear-gradient(170deg,#efe7dc 0%,#d9cdbf 100%)'},
+  {name:'blush',  css:'linear-gradient(170deg,#f6dfe0 0%,#e0b9bd 100%)'},
+  {name:'sage',   css:'linear-gradient(170deg,#dfe7da 0%,#b4c4ad 100%)'},
+  {name:'sky',    css:'linear-gradient(170deg,#dceaf4 0%,#aec8dd 100%)'},
+  {name:'sand',   css:'linear-gradient(170deg,#f0e4cf 0%,#d7bf9c 100%)'},
+  {name:'dusk',   css:'linear-gradient(170deg,#4a4260 0%,#231f33 100%)'},
+  {name:'noir',   css:'linear-gradient(170deg,#2b2926 0%,#121110 100%)'},
+  {name:'club',   css:'linear-gradient(170deg,#3d1f38 0%,#17121f 100%)'},
+  {name:'cheetah',css:'var(--spots) 0 0/62px 62px, linear-gradient(170deg,#eccb8d 0%,#c89a4f 100%)'},
+  {name:'paper',  css:'linear-gradient(170deg,#faf7f2 0%,#e8e2d8 100%)'}
+];
+
+/* ---------- STATE ---------- */
+let state = { pose:'stand', backdrop:0, items:[] };
+
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const stage = $('#stage');
+
+function toast(msg,ms=2200){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),ms);
+}
+
+/* ---------- STORAGE (IndexedDB) ---------- */
+const DB = {
+  db:null,
+  open(){
+    return new Promise(res=>{
+      const r = indexedDB.open('sophie-closet',1);
+      r.onupgradeneeded = e => {
+        const d = e.target.result;
+        if(!d.objectStoreNames.contains('kv')) d.createObjectStore('kv');
+      };
+      r.onsuccess = e => { this.db = e.target.result; res(); };
+      r.onerror   = () => res();
+    });
+  },
+  set(k,v){
+    if(!this.db) return;
+    try{ this.db.transaction('kv','readwrite').objectStore('kv').put(v,k); }catch(e){}
+  },
+  get(k){
+    return new Promise(res=>{
+      if(!this.db) return res(null);
+      try{
+        const q = this.db.transaction('kv','readonly').objectStore('kv').get(k);
+        q.onsuccess = () => res(q.result ?? null);
+        q.onerror   = () => res(null);
+      }catch(e){ res(null); }
+    });
+  }
+};
+const save = () => DB.set('state', JSON.parse(JSON.stringify(state)));
+/* ============================================================
+   CUTOUT
+   ============================================================ */
+
+const loadImg = src => new Promise((res,rej)=>{
+  const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src;
+});
+
+/* Crop a canvas down to whatever still has alpha, + a little padding. */
+function autoCrop(ctx,w,h){
+  const p = ctx.getImageData(0,0,w,h).data;
+  let x0=w,y0=h,x1=-1,y1=-1;
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      if(p[(y*w+x)*4+3] > 12){
+        if(x<x0)x0=x; if(x>x1)x1=x;
+        if(y<y0)y0=y; if(y>y1)y1=y;
+      }
+    }
+  }
+  if(x1<0) return null;
+  const pad=2;
+  x0=Math.max(0,x0-pad); y0=Math.max(0,y0-pad);
+  x1=Math.min(w-1,x1+pad); y1=Math.min(h-1,y1+pad);
+  const cw=x1-x0+1, ch=y1-y0+1;
+  const out=document.createElement('canvas');
+  out.width=cw; out.height=ch;
+  out.getContext('2d').drawImage(ctx.canvas,x0,y0,cw,ch,0,0,cw,ch);
+  return out;
+}
+
+/* Flood-fill from every edge pixel, knocking out anything close to the
+   corner colour. Instant, and ideal for retail product shots.        */
+async function quickCut(src, tol=32){
+  const img = await loadImg(src);
+  const w=img.width, h=img.height;
+  const cv=document.createElement('canvas');
+  cv.width=w; cv.height=h;
+  const ctx=cv.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(img,0,0);
+
+  const d=ctx.getImageData(0,0,w,h), p=d.data;
+
+  // background colour = mean of the four corners
+  const corners=[[0,0],[w-1,0],[0,h-1],[w-1,h-1]].map(([x,y])=>{
+    const i=(y*w+x)*4; return [p[i],p[i+1],p[i+2]];
+  });
+  const bg=[0,1,2].map(c=>Math.round(corners.reduce((s,q)=>s+q[c],0)/4));
+
+  const seen=new Uint8Array(w*h);
+  const stack=[];
+  for(let x=0;x<w;x++){ stack.push(x); stack.push((h-1)*w+x); }
+  for(let y=0;y<h;y++){ stack.push(y*w); stack.push(y*w+w-1); }
+
+  const lim = tol*tol*3;
+  let removed=0;
+
+  while(stack.length){
+    const idx=stack.pop();
+    if(seen[idx]) continue;
+    const i=idx*4;
+    const dr=p[i]-bg[0], dg=p[i+1]-bg[1], db=p[i+2]-bg[2];
+    if(dr*dr+dg*dg+db*db > lim) continue;
+    seen[idx]=1; removed++;
+    const x=idx%w, y=(idx-x)/w;
+    if(x>0)     stack.push(idx-1);
+    if(x<w-1)   stack.push(idx+1);
+    if(y>0)     stack.push(idx-w);
+    if(y<h-1)   stack.push(idx+w);
+  }
+
+  /* Enclosed background — neck holes, armpit gaps, the space between
+     trouser legs. The edge fill can't reach these, so sweep for
+     bg-coloured blobs that nothing else claimed. Capped at 18% of the
+     image each, so a white shirt doesn't get hollowed out.        */
+  const CAP = w*h*0.18;
+  for(let s=0;s<w*h;s++){
+    if(seen[s]) continue;
+    const si=s*4;
+    const sr=p[si]-bg[0], sg=p[si+1]-bg[1], sb=p[si+2]-bg[2];
+    if(sr*sr+sg*sg+sb*sb > lim) continue;
+
+    const blob=[], q=[s];
+    seen[s]=2;
+    let bust=false;
+    while(q.length){
+      const idx=q.pop();
+      blob.push(idx);
+      if(blob.length > CAP){ bust=true; break; }
+      const x=idx%w, y=(idx-x)/w;
+      const nb=[];
+      if(x>0)   nb.push(idx-1);
+      if(x<w-1) nb.push(idx+1);
+      if(y>0)   nb.push(idx-w);
+      if(y<h-1) nb.push(idx+w);
+      for(const n of nb){
+        if(seen[n]) continue;
+        const ni=n*4;
+        const dr=p[ni]-bg[0], dg=p[ni+1]-bg[1], db=p[ni+2]-bg[2];
+        if(dr*dr+dg*dg+db*db > lim) continue;
+        seen[n]=2; q.push(n);
+      }
+    }
+    if(bust){ for(const b of blob) seen[b]=3; }   // too big — keep it
+    else     { for(const b of blob){ seen[b]=1; removed++; } }
+  }
+
+  // knock out, then feather the boundary so edges aren't jagged
+  for(let i=0;i<w*h;i++) if(seen[i]===1) p[i*4+3]=0;
+
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const idx=y*w+x;
+      if(seen[idx]===1) continue;
+      const gone = i => seen[i]===1;
+      const edge =
+        (x>0     && gone(idx-1)) || (x<w-1 && gone(idx+1)) ||
+        (y>0     && gone(idx-w)) || (y<h-1 && gone(idx+w));
+      if(!edge) continue;
+      const i=idx*4;
+      const dr=p[i]-bg[0], dg=p[i+1]-bg[1], db=p[i+2]-bg[2];
+      const dist=Math.sqrt(dr*dr+dg*dg+db*db);
+      p[i+3]=Math.max(60,Math.min(255,Math.round(255*dist/(tol*1.6))));
+    }
+  }
+
+  ctx.putImageData(d,0,0);
+  const cropped = autoCrop(ctx,w,h);
+  if(!cropped) return null;
+
+  return {
+    src: cropped.toDataURL('image/webp',0.9),
+    w: cropped.width,
+    h: cropped.height,
+    ratio: removed/(w*h)
+  };
+}
+
+/* Segmentation model — only fetched when actually asked for. */
+let bgRemover = null;
+async function aiCut(src){
+  if(!bgRemover){
+    toast('fetching the model, one sec…',9000);
+    const mod = await import('https://esm.sh/@imgly/background-removal@1.6.0');
+    bgRemover = mod.removeBackground || mod.default;
+  }
+  const blob = await (await fetch(src)).blob();
+  const out = await bgRemover(blob,{
+    publicPath:'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.6.0/dist/',
+    output:{format:'image/png'}
+  });
+
+  const url = URL.createObjectURL(out);
+  const img = await loadImg(url);
+  URL.revokeObjectURL(url);
+
+  const cv=document.createElement('canvas');
+  cv.width=img.width; cv.height=img.height;
+  const ctx=cv.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(img,0,0);
+
+  const cropped = autoCrop(ctx,img.width,img.height) || cv;
+  return {
+    src: cropped.toDataURL('image/webp',0.9),
+    w: cropped.width,
+    h: cropped.height
+  };
+}
+
+/* ---------- MEASURE ----------
+   Median width across the garment's non-empty rows. More honest than
+   the bounding box, which a single sleeve or strap can blow out.  */
+async function measure(src){
+  const img = await loadImg(src);
+  const w=img.width, h=img.height;
+  const cv=document.createElement('canvas');
+  cv.width=w; cv.height=h;
+  const ctx=cv.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(img,0,0);
+  const p=ctx.getImageData(0,0,w,h).data;
+
+  const rows=[];
+  for(let y=0;y<h;y++){
+    let x0=-1,x1=-1;
+    for(let x=0;x<w;x++){
+      if(p[(y*w+x)*4+3]>40){ if(x0<0)x0=x; x1=x; }
+    }
+    if(x0>=0) rows.push({y, x0, x1, w:x1-x0+1, c:(x0+x1)/2});
+  }
+  if(!rows.length) return null;
+  const widths=rows.map(r=>r.w).sort((a,b)=>a-b);
+  return { rows, median: widths[Math.floor(widths.length/2)], natW:w, natH:h };
+}
+
+/* Size the garment so its median width matches the body. */
+function autoFit(it,m){
+  it.base = CATS[it.cat].fit / m.median;
+  it.scale = 1;
+}
+
+/* ---------- WRAP ----------
+   Row by row, squeeze the garment toward the body silhouette at that
+   height and pull it to the body's centreline, then shade the edges.
+   Geometry, not simulation — but it stops it reading as a sticker. */
+async function wrapToBody(it){
+  if(!it.wrap || !CATS[it.cat].wrap) return it.src;
+
+  const img = await loadImg(it.src);
+  const nW=img.width, nH=img.height;
+
+  const src=document.createElement('canvas');
+  src.width=nW; src.height=nH;
+  const sctx=src.getContext('2d',{willReadFrequently:true});
+  sctx.drawImage(img,0,0);
+  const p=sctx.getImageData(0,0,nW,nH).data;
+
+  const a  = POSES[state.pose].anchors[it.cat] || POSES[state.pose].anchors.top;
+  const sw = nW*it.base*it.scale, sh = nH*it.base*it.scale;
+  const left = a.x+it.dx-sw/2, top = a.y+it.dy-sh/2;
+  const pxToStage = sw/nW;
+  const hug = CATS[it.cat].hug;
+  const k   = it.wrapAmt ?? 0.65;
+
+  const out=document.createElement('canvas');
+  out.width=nW; out.height=nH;
+  const octx=out.getContext('2d');
+
+  for(let y=0;y<nH;y++){
+    let x0=-1,x1=-1;
+    for(let x=0;x<nW;x++){
+      if(p[(y*nW+x)*4+3]>40){ if(x0<0)x0=x; x1=x; }
+    }
+    if(x0<0) continue;
+
+    const gHalf=(x1-x0+1)/2, gC=(x0+x1)/2;
+    const stageY = top + (y+0.5)*pxToStage;
+    const b = bodyAt(state.pose, stageY);
+
+    let half=gHalf, cx=gC;
+    if(b && gHalf>1){
+      const want  = b.half*hug/pxToStage;          // target half-width, px
+      const ratio = Math.max(0.62, Math.min(1.55, want/gHalf));
+      half = gHalf*(1 + (ratio-1)*k);
+      const bcx = (b.cx-left)/pxToStage;
+      cx = gC + (bcx-gC)*k*0.55;
+    }
+    octx.drawImage(src, x0, y, x1-x0+1, 1, cx-half, y, half*2, 1);
+  }
+
+  // volume: darker toward the edges, lightest just off-centre
+  const g=octx.createLinearGradient(0,0,nW,0);
+  g.addColorStop(0,'rgba(0,0,0,.30)');
+  g.addColorStop(.22,'rgba(0,0,0,.06)');
+  g.addColorStop(.42,'rgba(255,255,255,.09)');
+  g.addColorStop(.74,'rgba(0,0,0,.08)');
+  g.addColorStop(1,'rgba(0,0,0,.32)');
+  octx.globalCompositeOperation='source-atop';
+  octx.fillStyle=g;
+  octx.fillRect(0,0,nW,nH);
+  octx.globalCompositeOperation='source-over';
+
+  return out.toDataURL('image/webp',0.9);
+}
+
+
+/* ---------- APPLY A CUT ---------- */
+async function applyCut(it,out){
+  it.src=out.src; it.natW=out.w; it.natH=out.h;
+  const m = await measure(out.src);
+  if(m) autoFit(it,m); else it.base = CATS[it.cat].w / out.w;
+  await reflow(it);
+  renderAll();
+  save();
+}
+
+async function reflow(it){ it.render = await wrapToBody(it); }
+
+let reflowTimer=null;
+function reflowSoon(it,ms=170){
+  clearTimeout(reflowTimer);
+  reflowTimer=setTimeout(async()=>{ await reflow(it); renderAll(); save(); },ms);
+}
+
+/* ============================================================
+   RENDERING — the main stage and the preview inside the overlay
+   share these, so what she adjusts is what she gets.
+   ============================================================ */
+
+/* The figure is drawn twice: a darker pass slightly fatter than the
+   real one, then the body on top. That leaves a contour line that
+   holds up on a cream backdrop and on a near-black one.          */
+function drawFigureInto(svg){
+  const p = POSES[state.pose];
+  const ink   = '#5d4433';   // contour
+  const skin  = '#caa283';   // body
+  const shade = '#b08866';   // feet, neck
+  const g = p.ground;
+
+  svg.innerHTML = `
+    <ellipse cx="${p.head.x}" cy="${g.y}" rx="${g.rx}" ry="8"
+             fill="rgba(40,26,14,.18)"/>
+
+    <g stroke="${ink}" stroke-linecap="round" fill="none">
+      <path d="${p.armL}" stroke-width="24"/><path d="${p.armR}" stroke-width="24"/>
+      <path d="${p.legL}" stroke-width="28"/><path d="${p.legR}" stroke-width="28"/>
+      <path d="${p.footL}" stroke-width="15.5"/><path d="${p.footR}" stroke-width="15.5"/>
+    </g>
+    <rect x="${p.head.x-11}" y="${p.head.y+14}" width="22" height="28" fill="${ink}"/>
+    <path d="${p.torso}" fill="${ink}" stroke="${ink}"
+          stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="${p.head.x}" cy="${p.head.y}" r="${p.head.r+2}" fill="${ink}"/>
+
+    <g stroke="${skin}" stroke-linecap="round" fill="none">
+      <path d="${p.armL}" stroke-width="21"/><path d="${p.armR}" stroke-width="21"/>
+      <path d="${p.legL}" stroke-width="25"/><path d="${p.legR}" stroke-width="25"/>
+    </g>
+    <g stroke="${shade}" stroke-width="13" stroke-linecap="round" fill="none">
+      <path d="${p.footL}"/><path d="${p.footR}"/>
+    </g>
+    <path d="${p.torso}" fill="${skin}"/>
+    <rect x="${p.head.x-9}" y="${p.head.y+18}" width="18" height="24" fill="${shade}"/>
+    <circle cx="${p.head.x}" cy="${p.head.y}" r="${p.head.r}" fill="${skin}"/>`;
+}
+
+function placeEl(el,it){
+  const a = POSES[state.pose].anchors[it.cat] || POSES[state.pose].anchors.top;
+  const w = it.natW * it.base * it.scale;
+  const h = it.natH * it.base * it.scale;
+  el.style.left   = (a.x + it.dx - w/2)+'px';
+  el.style.top    = (a.y + it.dy - h/2)+'px';
+  el.style.width  = w+'px';
+  el.style.height = h+'px';
+  el.style.zIndex = CATS[it.cat].z;
+  el.style.transform = `rotate(${it.rot}deg)`;
+}
+
+function renderItemsInto(host, litId){
+  host.innerHTML = '';
+  state.items.filter(i=>i.worn).forEach(it=>{
+    const el = document.createElement('img');
+    el.src = it.render || it.src;
+    el.className = 'item' + (litId===it.id ? ' lit':'');
+    el.dataset.id = it.id;
+    placeEl(el,it);
+    host.appendChild(el);
+  });
+}
+
+/* One call keeps both stages in step. */
+function renderAll(){
+  drawFigureInto(stage.querySelector('.fig'));
+  stage.querySelector('.bd').style.background = BACKDROPS[state.backdrop].css;
+  renderItemsInto(stage.querySelector('.its'), null);
+
+  if(editing){
+    const ms = $('#mstage');
+    drawFigureInto(ms.querySelector('.fig'));
+    ms.querySelector('.bd').style.background = BACKDROPS[state.backdrop].css;
+    renderItemsInto(ms.querySelector('.its'), editing.id);
+  }
+  renderCloset();
+}
+
+function renderCloset(){
+  const c = $('#closet');
+  if(!state.items.length){
+    c.innerHTML = '<div class="empty">nothing in here yet</div>';
+    return;
+  }
+  c.innerHTML = '';
+  state.items.forEach(it=>{
+    const d = document.createElement('div');
+    d.className = 'thumb' + (it.worn ? ' worn':'');
+    d.innerHTML = `<img src="${it.src}">
+                   <button class="edit" title="Edit fit">✎</button>
+                   <div class="tag">${CATS[it.cat].label}</div>`;
+    d.onclick = () => {
+      it.worn = !it.worn;
+      renderAll(); save();
+    };
+    d.querySelector('.edit').onclick = e => {
+      e.stopPropagation();
+      if(!it.worn){ it.worn = true; }
+      openSheet(it,'wide');
+    };
+    c.appendChild(d);
+  });
+}
+
+/* ============================================================
+   THE REVIEW OVERLAY
+   Compact on import: just the garment on her, and a yes/no.
+   Expanded: the same preview with every control beside it.
+   ============================================================ */
+
+let editing = null;        // item currently in the sheet
+const queue  = [];         // items waiting their turn after a multi-drop
+
+/* Fill as much of the screen as the sheet can take. The preview is the
+   whole point of the overlay, so it gets whatever room is going.    */
+function sizeSheet(wide){
+  const vh = window.innerHeight, vw = window.innerWidth;
+  const stacked = vw <= 900;
+  const sideW  = (wide && !stacked) ? 360 : 0;
+  const sideH  = (wide && stacked)  ? 330 : 0;
+  const k = Math.max(0.42, Math.min(
+    (vh - 150 - sideH) / 600,          // minus footer and padding
+    (vw - sideW - 110) / 400,
+    1.45
+  ));
+  const box = $('#mbox'), ms = $('#mstage');
+  box.style.width  = Math.round(400*k)+'px';
+  box.style.height = Math.round(600*k)+'px';
+  ms.style.transform = `scale(${k})`;
+}
+window.addEventListener('resize', ()=>{
+  if(editing) sizeSheet($('#modal').classList.contains('wide'));
+});
+
+function openSheet(it, mode){
+  editing = it;
+  const m = $('#modal');
+  m.classList.toggle('wide', mode==='wide');
+  sizeSheet(mode==='wide');
+  syncSheet();
+  renderAll();
+  m.classList.add('on');
+}
+
+function closeSheet(){
+  const m = $('#modal');
+  m.classList.remove('on');
+  editing = null;
+  renderAll(); save();
+  setTimeout(next,260);     // whatever else was dropped in
+}
+
+function expandSheet(){
+  $('#modal').classList.add('wide');
+  sizeSheet(true);
+  syncSheet();
+}
+
+function next(){
+  if(editing || !queue.length) return;
+  openSheet(queue.shift(),'compact');
+}
+
+/* Push the item's values into the controls. */
+function syncSheet(){
+  const it = editing; if(!it) return;
+  $('#rScale').value = Math.round(it.scale*100);
+  $('#vScale').textContent = Math.round(it.scale*100)+'%';
+  $('#rRot').value = it.rot;
+  $('#vRot').textContent = it.rot+'°';
+  $('#cat').value = it.cat;
+  $('#rTol').value = it.tol ?? 32;
+  $('#vTol').textContent = it.tol ?? 32;
+  $('#wrapOn').checked = it.wrap !== false;
+  $('#rWrap').value = Math.round((it.wrapAmt ?? 0.65)*100);
+  $('#rWrap').disabled = !CATS[it.cat].wrap || it.wrap === false;
+  $('#rTol').disabled = it.src === it.orig && it.cutMode === 'ai';
+}
+
+/* ---------- SHEET CONTROLS ---------- */
+$('#askYes').onclick  = closeSheet;
+$('#askNo').onclick   = expandSheet;
+$('#finDone').onclick = closeSheet;
+$('#modal').addEventListener('pointerdown', e=>{
+  if(e.target.id==='modal' && !$('#modal').classList.contains('wide')) closeSheet();
+});
+
+$('#rScale').oninput = e => {
+  const it=editing; if(!it) return;
+  it.scale = e.target.value/100;
+  $('#vScale').textContent = e.target.value+'%';
+  renderAll(); reflowSoon(it);
+};
+$('#rRot').oninput = e => {
+  const it=editing; if(!it) return;
+  it.rot = +e.target.value;
+  $('#vRot').textContent = e.target.value+'°';
+  renderAll();
+};
+$('#rRot').onchange = save;
+
+$('#wrapOn').onchange = async e => {
+  const it=editing; if(!it) return;
+  it.wrap = e.target.checked;
+  $('#rWrap').disabled = !CATS[it.cat].wrap || !it.wrap;
+  await reflow(it); renderAll(); save();
+};
+$('#rWrap').oninput = e => {
+  const it=editing; if(!it) return;
+  it.wrapAmt = e.target.value/100;
+  reflowSoon(it,130);
+};
+
+$('#cat').onchange = async e => {
+  const it=editing; if(!it) return;
+  it.cat = e.target.value;
+  const m = await measure(it.src);
+  if(m) autoFit(it,m); else it.base = CATS[it.cat].w / it.natW;
+  it.dx=0; it.dy=0;
+  await reflow(it);
+  renderAll(); syncSheet(); save();
+};
+
+$('#rTol').oninput  = e => { $('#vTol').textContent = e.target.value; };
+$('#rTol').onchange = async e => {
+  const it=editing; if(!it) return;
+  it.tol = +e.target.value;
+  const out = await quickCut(it.orig, it.tol);
+  if(!out) return toast('that removed everything — lower the strength');
+  await applyCut(it,out);
+  syncSheet();
+};
+
+$('#cutAI').onclick = async e => {
+  const it=editing; if(!it) return;
+  const b=e.target; b.disabled=true; b.textContent='…';
+  try{
+    await applyCut(it, await aiCut(it.orig));
+    it.cutMode='ai';
+    toast('done');
+  }catch(err){
+    console.warn(err);
+    toast("couldn't load the model — the slider still works",3400);
+  }
+  b.disabled=false; b.textContent='AI cut';
+  syncSheet();
+};
+
+$('#cutUndo').onclick = async () => {
+  const it=editing; if(!it) return;
+  const img = await loadImg(it.orig);
+  it.src=it.orig; it.natW=img.width; it.natH=img.height;
+  it.base=CATS[it.cat].w / img.width;
+  it.render=null; it.cutMode=null;
+  renderAll(); syncSheet(); save();
+};
+
+$('#reset').onclick = async () => {
+  const it=editing; if(!it) return;
+  it.dx=0; it.dy=0; it.rot=0; it.scale=1;
+  await reflow(it);
+  renderAll(); syncSheet(); save();
+};
+
+$('#del').onclick = () => {
+  const it=editing; if(!it) return;
+  state.items = state.items.filter(i=>i.id!==it.id);
+  closeSheet();
+};
+
+/* ---------- IMPORT ----------
+   Downscale to 800px, cut, size to the body, then show her the result
+   and let her say yes. Several files queue up rather than stacking.  */
+function addFiles(files){
+  [...files].filter(f=>f.type.startsWith('image/')).forEach(f=>{
+    const fr = new FileReader();
+    fr.onload = e => ingest(e.target.result, f.name);
+    fr.readAsDataURL(f);
+  });
+}
+
+/* Everything from a raw image onward — same path whether it arrived as a
+   dropped file or off a product page.                                */
+function ingest(dataURL, name){
+  return new Promise(done=>{
+    {
+      const img = new Image();
+      img.onload = async () => {
+        const MAX = 800;
+        let w = img.width, h = img.height;
+        if(w > MAX || h > MAX){
+          const k = MAX / Math.max(w,h);
+          w = Math.round(w*k); h = Math.round(h*k);
+        }
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        const orig = cv.toDataURL('image/webp',0.88);
+
+        const cat = guessCat(f.name);
+        const it = {
+          id: Date.now()+'-'+Math.random().toString(36).slice(2,7),
+          name: f.name, cat,
+          src: orig, orig, render:null, tol:32, cutMode:null,
+          natW:w, natH:h,
+          base: CATS[cat].w / w,
+          dx:0, dy:0, scale:1, rot:0,
+          wrap:true, wrapAmt:0.65,
+          worn:true
+        };
+        state.items.push(it);
+
+        try{
+          const out = await quickCut(orig,32);
+          if(out && out.ratio > 0.04 && out.ratio < 0.93){
+            await applyCut(it,out);
+            it.cutMode='quick';
+          }else{
+            await reflow(it);
+            toast('messy background — try AI cut');
+          }
+        }catch(err){ console.warn(err); }
+
+        renderAll(); save();
+        queue.push(it); next();
+        done(it);
+      };
+      img.onerror = () => done(null);
+      img.src = dataURL;
+    }
+  });
+}
+
+/* ============================================================
+   LINK IMPORT
+   A static page can't fetch a shop directly, so requests go through
+   a public CORS proxy. No account, no server — but it is someone
+   else's box, so it is best-effort and some sites still say no.
+   ============================================================ */
+
+const PROXIES = [
+  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+  u => 'https://corsproxy.io/?url=' + encodeURIComponent(u)
+];
+
+async function viaProxy(url, as){
+  let last;
+  for(const mk of PROXIES){
+    try{
+      const r = await fetch(mk(url));
+      if(!r.ok) { last = new Error('HTTP '+r.status); continue; }
+      return as==='blob' ? await r.blob() : await r.text();
+    }catch(err){ last = err; }
+  }
+  throw last || new Error('unreachable');
+}
+
+/* Pull every plausible product photo off the page. Retailers put the
+   flat-lay and the model shot in the same gallery, so collect them
+   all and let her choose rather than guessing.                    */
+function findImages(html, base){
+  const urls = [], seen = new Set();
+  const push = u => {
+    if(!u) return;
+    let o;
+    try{ o = new URL(u.replace(/&amp;/g,'&').trim(), base); }catch(_){ return; }
+    if(!/^https?:/.test(o.protocol)) return;
+    if(/\.svg($|\?)/i.test(o.href)) return;
+    if(/sprite|logo|icon|placeholder|pixel|badge|flag/i.test(o.href)) return;
+    // the same photo often appears at several ?w= sizes — one is plenty
+    const key = o.host + o.pathname;
+    if(seen.has(key)) return;
+    seen.add(key); urls.push(o.href);
+  };
+
+  for(const m of html.matchAll(/<meta[^>]+(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image)["'][^>]*>/gi)){
+    const c = m[0].match(/content=["']([^"']+)["']/i);
+    if(c) push(c[1]);
+  }
+  for(const m of html.matchAll(/"image"\s*:\s*(\[[^\]]*\]|"[^"]+")/gi)){
+    for(const u of m[1].matchAll(/"(https?:[^"]+)"/g)) push(u[1]);
+  }
+  for(const m of html.matchAll(/<img[^>]+>/gi)){
+    const tag = m[0];
+    const ss = tag.match(/srcset=["']([^"']+)["']/i);
+    if(ss){
+      const best = ss[1].split(',').map(x=>x.trim().split(/\s+/))
+                        .sort((a,b)=>parseInt(b[1]||0)-parseInt(a[1]||0))[0];
+      // srcset already gave us the biggest one; src would only re-add a thumb
+      if(best){ push(best[0]); continue; }
+    }
+    const sr = tag.match(/(?:data-src|data-original|src)=["']([^"']+)["']/i);
+    if(sr) push(sr[1]);
+  }
+  return urls.slice(0,12);
+}
+
+async function grabLink(raw){
+  let url = raw.trim();
+  if(!url) return;
+  if(!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+  // a direct image link needs no scraping
+  if(/\.(jpe?g|png|webp|avif)($|\?)/i.test(url)){
+    toast('fetching…',6000);
+    return useCandidate(url);
+  }
+
+  toast('reading the page…',9000);
+  let html;
+  try{ html = await viaProxy(url,'text'); }
+  catch(err){
+    console.warn(err);
+    return toast("couldn't reach that page — save the image and drop it in",4200);
+  }
+
+  const cands = findImages(html, url);
+  if(!cands.length) return toast('no product photos found on that page',3800);
+  toast('');
+  openPicker(cands);
+}
+
+/* ---------- PICKER ---------- */
+function openPicker(urls){
+  const g = $('#pickGrid');
+  g.innerHTML = '';
+  urls.forEach(u=>{
+    const b = document.createElement('button');
+    b.className = 'cand';
+    b.innerHTML = `<img src="${u}" loading="lazy">`;
+    // a thumbnail that won't even load is one we can't use
+    b.querySelector('img').onerror = () => b.remove();
+    b.onclick = () => { closePicker(); useCandidate(u); };
+    g.appendChild(b);
+  });
+  $('#pick').classList.add('on');
+}
+function closePicker(){ $('#pick').classList.remove('on'); }
+$('#pickCancel').onclick = closePicker;
+$('#pick').addEventListener('pointerdown', e=>{ if(e.target.id==='pick') closePicker(); });
+
+/* Fetch the chosen photo through the proxy so the canvas stays clean —
+   a cross-origin image would taint it and block every cutout.    */
+async function useCandidate(imgUrl){
+  try{
+    const blob = await viaProxy(imgUrl,'blob');
+    if(!blob.type.startsWith('image/')) throw new Error('not an image');
+    const dataURL = await new Promise((res,rej)=>{
+      const fr = new FileReader();
+      fr.onload = e => res(e.target.result);
+      fr.onerror = rej;
+      fr.readAsDataURL(blob);
+    });
+    toast('');
+    await ingest(dataURL, imgUrl.split('?')[0]);
+    $('#url').value = '';
+  }catch(err){
+    console.warn(err);
+    toast("couldn't fetch that image — try another, or save and drop it in",4200);
+  }
+}
+
+$('#grab').onclick = () => grabLink($('#url').value);
+$('#url').addEventListener('keydown', e=>{
+  if(e.key==='Enter') grabLink(e.target.value);
+});
+
+function guessCat(name){
+  const n = name.toLowerCase();
+  if(/shoe|boot|heel|sneaker|trainer|sandal|loafer/.test(n)) return 'shoes';
+  if(/jean|trouser|pant|skirt|short|legging/.test(n))        return 'bottom';
+  if(/coat|jacket|blazer|cardigan|trench|parka/.test(n))     return 'outerwear';
+  if(/hat|cap|beanie|beret/.test(n))                         return 'hat';
+  if(/bag|belt|scarf|glasses|necklace|earring/.test(n))      return 'accessory';
+  return 'top';
+}
+
+/* ---------- DRAG ----------
+   Works on both stages. Capture on the live node and move by style —
+   re-rendering mid-drag would detach it and kill the capture.    */
+let drag = null;
+
+function wireDrag(host){
+  host.addEventListener('pointerdown', e=>{
+    const el = e.target.closest('.item');
+    if(!el) return;
+    const it = state.items.find(i=>i.id===el.dataset.id);
+    if(!it) return;
+    if(editing && it.id!==editing.id) return;      // sheet edits one item
+    const k = host.getBoundingClientRect().width/400;
+    drag = {it, el, sx:e.clientX, sy:e.clientY, ox:it.dx, oy:it.dy, k};
+    try{ el.setPointerCapture(e.pointerId); }catch(_){}
+    el.classList.add('dragging');
+  });
+}
+wireDrag(stage.querySelector('.its'));
+wireDrag($('#mstage').querySelector('.its'));
+
+window.addEventListener('pointermove', e=>{
+  if(!drag) return;
+  drag.it.dx = drag.ox + (e.clientX - drag.sx)/drag.k;
+  drag.it.dy = drag.oy + (e.clientY - drag.sy)/drag.k;
+  placeEl(drag.el, drag.it);
+});
+
+window.addEventListener('pointerup', ()=>{
+  if(!drag) return;
+  drag.el.classList.remove('dragging');
+  const moved = drag.it;
+  drag = null;
+  renderAll(); save();
+  reflowSoon(moved,140);
+});
+
+/* ---------- PANEL ---------- */
+function buildUI(){
+  const pr = $('#poses');
+  pr.innerHTML = '';
+  Object.entries(POSES).forEach(([k,p])=>{
+    const b = document.createElement('button');
+    b.className = 'btn' + (state.pose===k ? ' on':'');
+    b.textContent = p.label;
+    b.onclick = async () => {
+      state.pose=k; buildUI(); renderAll();
+      for(const it of state.items.filter(i=>i.worn)) await reflow(it);
+      renderAll(); save();
+    };
+    pr.appendChild(b);
+  });
+
+  const bd = $('#backdrops');
+  bd.innerHTML = '';
+  BACKDROPS.forEach((b,i)=>{
+    const s = document.createElement('div');
+    s.className = 'sw' + (state.backdrop===i ? ' on':'');
+    s.style.background = b.css;
+    s.title = b.name;
+    s.onclick = () => { state.backdrop=i; buildUI(); renderAll(); save(); };
+    bd.appendChild(s);
+  });
+
+  const sel = $('#cat');
+  if(!sel.children.length){
+    Object.entries(CATS).forEach(([k,c])=>{
+      const o=document.createElement('option');
+      o.value=k; o.textContent=c.label;
+      sel.appendChild(o);
+    });
+  }
+}
+
+$('#clearLook').onclick = () => {
+  state.items.forEach(i=>i.worn=false);
+  renderAll(); save();
+};
+
+/* ---------- DROP ZONE ---------- */
+const drop = $('#drop');
+drop.onclick = () => $('#file').click();
+$('#file').onchange = e => { addFiles(e.target.files); e.target.value=''; };
+['dragenter','dragover'].forEach(ev=>{
+  drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.add('over'); });
+  stage.addEventListener(ev, e=>e.preventDefault());
+});
+['dragleave','drop'].forEach(ev=>
+  drop.addEventListener(ev, ()=>drop.classList.remove('over')));
+drop.addEventListener('drop', e=>{ e.preventDefault(); addFiles(e.dataTransfer.files); });
+stage.addEventListener('drop', e=>{ e.preventDefault(); addFiles(e.dataTransfer.files); });
+
+/* ---------- FIT MAIN STAGE ---------- */
+function fit(){
+  const wrap = $('#stageWrap');
+  const k = Math.min((wrap.clientWidth-40)/400, (wrap.clientHeight-40)/600, 1.25);
+  stage.style.transform = `scale(${Math.max(k,0.35)})`;
+}
+window.addEventListener('resize', fit);
+
+/* ---------- GATE ---------- */
+const gate = $('#gate'), code = $('#code');
+
+async function enter(){
+  gate.classList.add('hide');
+  setTimeout(()=>gate.style.display='none',500);
+  $('#app').classList.add('on');
+
+  await DB.open();
+  const saved = await DB.get('state');
+  if(saved) state = Object.assign(state, saved);
+
+  buildUI(); renderAll();
+  requestAnimationFrame(fit);
+
+  for(const it of state.items.filter(i=>i.worn)){
+    if(it.wrap === undefined){ it.wrap=true; it.wrapAmt=0.65; }
+    if(!it.render) await reflow(it);
+  }
+  renderAll();
+}
+
+code.addEventListener('keydown', e=>{
+  if(e.key !== 'Enter') return;
+  if(code.value.trim().toLowerCase() === PASSCODE){
+    sessionStorage.setItem('sc-in','1');
+    enter();
+  }else{
+    gate.classList.add('bad');
+    code.value='';
+    setTimeout(()=>gate.classList.remove('bad'),450);
+  }
+});
+
+if(sessionStorage.getItem('sc-in')) enter();
+else setTimeout(()=>code.focus(),300);
+</script>
+</body>
+</html>
