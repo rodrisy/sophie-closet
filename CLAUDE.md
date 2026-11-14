@@ -90,16 +90,38 @@ IndexedDB, key `state` in database `sophie-closet`. Whole state object, includin
 garment images as WebP data URLs (downscaled to 800px on import). Per-device —
 her phone and her laptop are separate closets until a backend exists.
 
+## Done since the first commit
+
+- **Saved looks** — snapshots of pose + backdrop + per-item placement, with a
+  real thumbnail rendered by the exporter at low res. Applying one tolerates
+  items deleted since.
+- **PNG export** — `exportStage(k)` redraws backdrop gradient, figure SVG and
+  worn items on a canvas (everything is data-URL or inline SVG, so it never
+  taints). Share sheet on phones, download elsewhere.
+- **Shuffle**, **undo on delete** (toast with an action button), **backup /
+  restore** to a JSON file — restore MERGES by item id, so it's idempotent and
+  is the cross-device story until a backend exists.
+- **Keyboard**: Esc closes sheets, Enter accepts the compact review, arrows
+  nudge the edited item (shift = coarse).
+- App icon (inline data URIs), iOS home-screen meta, wordmark, empty-state hint.
+
 ## Not done yet
 
-- **Saved looks + PNG export** — name an outfit, flick between them, export to
-  share. Local, no backend. Probably next.
 - **Firebase sync** — one closet across her devices. Needs the Firebase console;
   Firestore + anonymous auth so the passcode box stays as-is but the data isn't
-  world-readable.
+  world-readable. Backup/restore covers the gap meanwhile.
 - **Her face** — cut-out PNGs pinned to the head anchor, cycling between a few.
   The `face` category already exists and is wired; just needs the images.
 - **Deploy** — GitHub Pages. It's static, so it's push-and-done.
+
+## Browser drive-through
+
+`test/drive.mjs` runs the whole app in headless Chromium: passcode, both
+imports, review → editor, looks, shuffle, export and backup downloads,
+restore-merge, keyboard, persistence across reload, plus a phone-viewport pass.
+It needs a server (`python3 -m http.server 8070`) and Playwright. It caught a
+shipped bug the unit tests couldn't: a stale closure in `ingest()` had broken
+file upload entirely. Run it before handing over a build.
 
 ## Things not to do
 

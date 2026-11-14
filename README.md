@@ -15,6 +15,9 @@ Open `index.html`. That's it. No build, no install, no server.
   silhouette rather than sitting flat on top of it.
 - **Link import.** Paste a product page URL, pick which photo to use.
 - **Three poses, ten backdrops**, drag to adjust, saved between visits.
+- **Saved looks** with thumbnails, a shuffle button, and PNG export straight to
+  the share sheet.
+- **Backup & restore** — carry the whole closet to another device as one file.
 
 ## Running locally
 
