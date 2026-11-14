@@ -1192,16 +1192,27 @@ function ingest(dataURL, name){
    else's box, so it is best-effort and some sites still say no.
    ============================================================ */
 
-const PROXIES = [
-  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
-  u => 'https://corsproxy.io/?url=' + encodeURIComponent(u)
+/* Pages and images need different proxies: r.jina.ai renders the page
+   in a real browser (gets past bot walls that block plain fetch
+   proxies, e.g. Uniqlo) but only returns text; images.weserv.nl only
+   does images but is the most reliable thing on this list. */
+const PAGE_PROXIES = [
+  u => ({ url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u) }),
+  u => ({ url: 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u) }),
+  u => ({ url: 'https://r.jina.ai/' + u, headers: { 'X-Return-Format': 'html' } })
+];
+const IMAGE_PROXIES = [
+  u => ({ url: 'https://images.weserv.nl/?url=' + encodeURIComponent(u) }),
+  u => ({ url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u) }),
+  u => ({ url: 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u) })
 ];
 
 async function viaProxy(url, as){
   let last;
-  for(const mk of PROXIES){
+  for(const mk of (as === 'blob' ? IMAGE_PROXIES : PAGE_PROXIES)){
+    const { url: purl, headers } = mk(url);
     try{
-      const r = await fetch(mk(url));
+      const r = await fetch(purl, { headers, signal: AbortSignal.timeout(30000) });
       if(!r.ok) { last = new Error('HTTP '+r.status); continue; }
       return as==='blob' ? await r.blob() : await r.text();
     }catch(err){ last = err; }

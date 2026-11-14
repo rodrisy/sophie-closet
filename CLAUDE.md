@@ -65,11 +65,17 @@ replace it with absolute positioning.
 **Auto-sizing** uses the *median* row width of the cut-out, not the bounding
 box — one outstretched sleeve shouldn't set the scale.
 
-**Link import** goes through public CORS proxies (`allorigins`, `corsproxy.io`)
-because a static page can't fetch a shop directly. The chosen image is fetched
-*through* the proxy too — linking it directly would taint the canvas and break
-every cutout. Zara and other bot-protected sites often fail; that's expected and
-handled with a toast.
+**Link import** goes through public CORS proxies because a static page can't
+fetch a shop directly. Pages and images use different chains (`PAGE_PROXIES` /
+`IMAGE_PROXIES`): pages try `allorigins` → `codetabs` → `r.jina.ai` (which
+renders in a real browser and gets past bot walls that block the plain
+proxies — it's what makes Uniqlo work); images try `images.weserv.nl` first,
+which is images-only but the most reliable of the lot. The chosen image is
+fetched *through* a proxy too — linking it directly would taint the canvas and
+break every cutout. H&M, Zara and other Akamai-walled sites fail through every
+proxy including jina; that's expected and handled with a toast.
+(`corsproxy.io` was in this list once — it went key-only in 2025, don't re-add
+it.)
 
 ## Tuning knobs
 
