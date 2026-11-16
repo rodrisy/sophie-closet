@@ -1276,7 +1276,7 @@ async function grabLink(raw){
   try{ html = await viaProxy(url,'text'); }
   catch(err){
     console.warn(err);
-    return toast("couldn't reach that page — save the image and drop it in",4200);
+    return toast("that shop won't let us in — copy the photo's image address and paste that instead",5200);
   }
 
   const cands = findImages(html, url);

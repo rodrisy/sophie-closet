@@ -73,7 +73,13 @@ proxies — it's what makes Uniqlo work); images try `images.weserv.nl` first,
 which is images-only but the most reliable of the lot. The chosen image is
 fetched *through* a proxy too — linking it directly would taint the canvas and
 break every cutout. H&M, Zara and other Akamai-walled sites fail through every
-proxy including jina; that's expected and handled with a toast.
+proxy including jina — and so do the second-hand marketplaces (eBay, Vinted,
+Poshmark, Depop…), all probed and all blocked. The reliable workaround is that
+their *image CDNs* are open even where the pages are walled: right-click (or
+long-press) the product photo → copy image address → paste that into the link
+box. `grabLink` detects a direct image URL and skips scraping entirely, and
+weserv fetches `image.hm.com` / `static.zara.net` fine. The failure toast
+tells her this.
 (`corsproxy.io` was in this list once — it went key-only in 2025, don't re-add
 it.)
 
